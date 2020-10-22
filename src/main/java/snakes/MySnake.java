@@ -2,7 +2,6 @@ package snakes;
 
 import board.*;
 import java.awt.*;
-import java.util.*;
 
 
 /**
@@ -31,18 +30,26 @@ public class MySnake extends Snake {
      */
     @Override
     public int think(BoardInfo board) {
+        long start = System.currentTimeMillis();
         this.fields = board.getFields();
 
-        direction = chosePath(board, sampleAlgorithm(board));
+
+
+        try {
+            direction = chosePath(board, createQueues(board)[0]);
+        } catch (Exception e) {
+            direction = survive(board);
+        }
+
+        System.out.printf("time taken to think: %d\n", System.currentTimeMillis() - start);
 
         return direction; // or LEFT, or DOWN, or UP
     }
 
     private int survive(BoardInfo board) {
         if (!board.isNextStepFree(direction)) {
-            direction = UP;
             while (!board.isNextStepFree(direction)) {
-                direction++;
+                direction = (direction + 1) % 4;
             }
         }
 
@@ -136,33 +143,35 @@ public class MySnake extends Snake {
      * Algorithm to find a path to the nearest apple
      * https://en.wikipedia.org/wiki/Pathfinding#:~:text=%20Algorithms%20used%20in%20pathfinding%20%201%20A,not%20restricted%20to%20move%20along%20the...%20More%20
      */
-    private QueueItem[][] sampleAlgorithm(BoardInfo board) {
+    private QueueItem[][][] createQueues(BoardInfo board) {
         Field[][] fields = board.getFields();
 
-        Field nApplePos = board.getNearestApple();
+        Field[] applePos = board.getApples().toArray(new Field[0]);
 
-        QueueItem[][] queueMtrx = new QueueItem[fields[0].length][fields[1].length];
+        QueueItem[][][] queues = new QueueItem[applePos.length][board.getMAX_X()][board.getMAX_Y()];
 
-        QueueItem destination = new QueueItem(fields[nApplePos.getPosX()][nApplePos.getPosY()], 0);
-
-        queueMtrx[destination.pos.getPosX()][destination.pos.getPosY()] = destination;
-        queueMtrx = addItem(queueMtrx, destination, 0, board);
-
-
-
-        for (QueueItem[] column : queueMtrx) {
-            for (QueueItem item: column) {
-                if (item == null) {
-                    System.out.printf("[ XX ]");
-                } else {
-                    System.out.printf("[ %s%d ]", (item.counter < 10) ? " " : "", item.counter);
-                }
-            }
-            System.out.println();
+        for (int i = 0; i < applePos.length; i++) {
+            queues[i] = new QueueItem[fields.length][fields[0].length];
+            QueueItem destination = new QueueItem(fields[applePos[i].getPosX()][applePos[i].getPosY()], 0);
+            queues[i][destination.pos.getPosX()][destination.pos.getPosY()] = destination;
+            queues[i] = addItem(queues[i], destination, 0, board);
         }
 
 
-        return queueMtrx;
+
+//        for (QueueItem[] column : queueMtrx) {
+//            for (QueueItem item: column) {
+//                if (item == null) {
+//                    System.out.printf("[ XX ]");
+//                } else {
+//                    System.out.printf("[ %s%d ]", (item.counter < 10) ? " " : "", item.counter);
+//                }
+//            }
+//            System.out.println();
+//        }
+
+
+        return queues;
     }
 
     /**
@@ -173,7 +182,9 @@ public class MySnake extends Snake {
      * @return direction in which the snake should move
      */
     private int chosePath(BoardInfo board, QueueItem[][] queueMtrx) {
-        int direction;
+//        int direction;
+        int xMaxIndex = fields.length - 1;
+        int yMaxIndex = fields[0].length - 1;
 
         Field headPos = board.getOwnHead();
 
@@ -182,25 +193,30 @@ public class MySnake extends Snake {
         int rightCounter = queueMtrx.length * queueMtrx[0].length;
         int leftCounter = queueMtrx.length * queueMtrx[0].length;
 
-        if (headPos.getPosY() < fields[0].length - 1 && headPos.getPosY() > 0) {
+
+        if (headPos.getPosY() < yMaxIndex) {
             if (fields[headPos.getPosX()][headPos.getPosY() + 1].isFree()) {
                 downCounter = queueMtrx[headPos.getPosX()][headPos.getPosY() + 1].counter;
             }
+        }
+        if (headPos.getPosY() > 0) {
             if (fields[headPos.getPosX()][headPos.getPosY() - 1].isFree()) {
                 upCounter = queueMtrx[headPos.getPosX()][headPos.getPosY() - 1].counter;
             }
         }
-        if (headPos.getPosX() < fields.length - 1 && headPos.getPosX() > 0) {
+        if (headPos.getPosX() < xMaxIndex) {
             if (fields[headPos.getPosX() + 1][headPos.getPosY()].isFree()) {
                 rightCounter = queueMtrx[headPos.getPosX() + 1][headPos.getPosY()].counter;
             }
+        }
+        if (headPos.getPosX() > 0) {
             if (fields[headPos.getPosX() - 1][headPos.getPosY()].isFree()) {
                 leftCounter = queueMtrx[headPos.getPosX() - 1][headPos.getPosY()].counter;
             }
         }
 
-
-        System.out.printf("upCounter:\t\t%d\ndownCounter:\t%d\nrightCounter:\t%d\nleftCounter:\t%d\n-----------------\n", upCounter, downCounter, rightCounter, leftCounter);
+//        System.out.printf("x: %d, y: %d\n", headPos.getPosX(), headPos.getPosY());
+//        System.out.printf("upCounter:\t\t%d\ndownCounter:\t%d\nrightCounter:\t%d\nleftCounter:\t%d\n-----------------\n", upCounter, downCounter, rightCounter, leftCounter);
 
 
         if (upCounter <= downCounter && upCounter <= rightCounter && upCounter <= leftCounter) {
@@ -209,10 +225,10 @@ public class MySnake extends Snake {
             return DOWN;
         } else if (rightCounter <= upCounter && rightCounter <= downCounter && rightCounter <= leftCounter) {
             return RIGHT;
-        } else if (leftCounter <= upCounter && leftCounter <= downCounter && leftCounter <= rightCounter) {
-            return LEFT;
+//        } else if (leftCounter <= upCounter && leftCounter <= downCounter && leftCounter <= rightCounter) {
+//            return LEFT;
         } else {
-            return UP;
+            return LEFT;
         }
     }
 }
