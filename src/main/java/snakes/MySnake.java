@@ -2,6 +2,10 @@ package snakes;
 
 import board.*;
 import java.awt.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
 
 
 /**
@@ -14,7 +18,8 @@ import java.awt.*;
 public class MySnake extends Snake {
 
     private int direction = RIGHT;
-    Field[][] fields;
+
+    private Field[][] fields;
 
 
     public MySnake() {
@@ -31,9 +36,7 @@ public class MySnake extends Snake {
     @Override
     public int think(BoardInfo board) {
         long start = System.currentTimeMillis();
-        this.fields = board.getFields();
-
-
+        fields = board.getFields();
 
         try {
             direction = chosePath(board, createQueues(board)[0]);
@@ -45,6 +48,7 @@ public class MySnake extends Snake {
 
         return direction; // or LEFT, or DOWN, or UP
     }
+
 
     private int survive(BoardInfo board) {
         if (!board.isNextStepFree(direction)) {
@@ -68,14 +72,73 @@ public class MySnake extends Snake {
             this.pos = pos;
             this.counter = counter;
         }
+
+        void inc() {
+            counter++;
+        }
+
+        void reset() {
+            counter = 0;
+        }
+    }
+    // TODO edge cases: can't reach any apple,
+
+    private List<QueueItem> findPath(BoardInfo board, Field destination) {
+        QueueItem[][] fields = createMatrix(board);
+        List<QueueItem> path = new ArrayList<>();
+        QueueItem current = new QueueItem(destination, 0);
+        path.add(current);
+        for (int i = 0; i < path.size(); i++) {
+            QueueItem field = path.get(i);
+            List<QueueItem> adjacentFields = getAdjacentFields(board, fields, field);
+            adjacentFields.removeIf((item) -> item.pos.isFree() || item.counter >= field.counter);
+            path.addAll(adjacentFields);
+        }
+        return path;
     }
 
+    private QueueItem[][] createMatrix(BoardInfo board) {
+        QueueItem[][] fields = new QueueItem[board.getSIZE_X()][board.getSIZE_Y()];
+        for (int x = 0; x < board.getSIZE_X(); x++) {
+            for (int y = 0; y < board.getSIZE_Y(); y++) {
+                fields[x][y] = new QueueItem(board.getFields()[x][y], 0);
+            }
+        }
+        return fields;
+    }
+
+    private boolean isInBounds(BoardInfo board, int x, int y) {
+        return x <= board.getSIZE_X() && y <= board.getSIZE_Y();
+    }
+
+    private List<QueueItem> getAdjacentFields(BoardInfo board, QueueItem[][] fields, QueueItem center) {
+        List<QueueItem> items = new ArrayList<QueueItem>();
+
+        for (int deltaX = -1; deltaX < 2; deltaX++) {
+            if (deltaX != 0) {
+                if (isInBounds(board, center.pos.getPosX() + deltaX, center.pos.getPosY())) {
+                    fields[center.pos.getPosX() + deltaX][center.pos.getPosY()].counter = center.counter + 1;
+                    items.add(fields[center.pos.getPosX() + deltaX][center.pos.getPosY()]);
+                }
+            }
+        }
+        for (int deltaY = -1; deltaY < 2; deltaY++) {
+            if (deltaY != 0) {
+                if (isInBounds(board, center.pos.getPosX(), center.pos.getPosY() + deltaY)) {
+                    fields[center.pos.getPosX()][center.pos.getPosY() + deltaY].counter = center.counter + 1;
+                    items.add(fields[center.pos.getPosX()][center.pos.getPosY() + deltaY]);
+                }
+            }
+        }
+
+        return items;
+    }
 
     /*
      * Function to create a Matrix of all fields and their distance of the way to the destination
      */
-    QueueItem[][] addItem(QueueItem[][] queue, QueueItem item, int counter, BoardInfo board) {
-        queue[item.pos.getPosX()][item.pos.getPosY()] = item;
+    QueueItem[][] addItem(QueueItem[][] fields, QueueItem item, int counter, BoardInfo board) {
+        fields[item.pos.getPosX()][item.pos.getPosY()] = item;
 
         QueueItem newItem;
 
@@ -83,12 +146,12 @@ public class MySnake extends Snake {
          * add item on the left
          */
         try {
-            newItem = new QueueItem(this.fields[item.pos.getPosX() - 1][item.pos.getPosY()], counter + 1);
+            newItem = new QueueItem(this .fields[item.pos.getPosX() - 1][item.pos.getPosY()], counter + 1);
             if (newItem.pos.isFree()) {
-                if (queue[newItem.pos.getPosX()][newItem.pos.getPosY()] == null) {
-                    queue = addItem(queue, newItem, counter + 1, board);
-                } else if (queue[newItem.pos.getPosX()][newItem.pos.getPosY()].counter > newItem.counter) {
-                    queue = addItem(queue, newItem, counter + 1, board);
+                if (fields[newItem.pos.getPosX()][newItem.pos.getPosY()] == null) {
+                    fields = addItem(fields, newItem, counter + 1, board);
+                } else if (fields[newItem.pos.getPosX()][newItem.pos.getPosY()].counter > newItem.counter) {
+                    fields = addItem(fields, newItem, counter + 1, board);
                 }
             }
         } catch (ArrayIndexOutOfBoundsException e) {}
@@ -99,10 +162,10 @@ public class MySnake extends Snake {
         try {
             newItem = new QueueItem(this.fields[item.pos.getPosX() + 1][item.pos.getPosY()], counter + 1);
             if (newItem.pos.isFree()) {
-                if (queue[newItem.pos.getPosX()][newItem.pos.getPosY()] == null) {
-                    queue = addItem(queue, newItem, counter + 1, board);
-                } else if (queue[newItem.pos.getPosX()][newItem.pos.getPosY()].counter > newItem.counter) {
-                    queue = addItem(queue, newItem, counter + 1, board);
+                if (fields[newItem.pos.getPosX()][newItem.pos.getPosY()] == null) {
+                    fields = addItem(fields, newItem, counter + 1, board);
+                } else if (fields[newItem.pos.getPosX()][newItem.pos.getPosY()].counter > newItem.counter) {
+                    fields = addItem(fields, newItem, counter + 1, board);
                 }
             }
         } catch (ArrayIndexOutOfBoundsException e) {}
@@ -113,10 +176,10 @@ public class MySnake extends Snake {
         try {
             newItem = new QueueItem(this.fields[item.pos.getPosX()][item.pos.getPosY() - 1], counter + 1);
             if (newItem.pos.isFree()) {
-                if (queue[newItem.pos.getPosX()][newItem.pos.getPosY()] == null) {
-                    queue = addItem(queue, newItem, counter + 1, board);
-                } else if (queue[newItem.pos.getPosX()][newItem.pos.getPosY()].counter > newItem.counter) {
-                    queue = addItem(queue, newItem, counter + 1, board);
+                if (fields[newItem.pos.getPosX()][newItem.pos.getPosY()] == null) {
+                    fields = addItem(fields, newItem, counter + 1, board);
+                } else if (fields[newItem.pos.getPosX()][newItem.pos.getPosY()].counter > newItem.counter) {
+                    fields = addItem(fields, newItem, counter + 1, board);
                 }
             }
         } catch (ArrayIndexOutOfBoundsException e) {}
@@ -127,15 +190,15 @@ public class MySnake extends Snake {
         try {
             newItem = new QueueItem(this.fields[item.pos.getPosX()][item.pos.getPosY() + 1], counter + 1);
             if (newItem.pos.isFree()) {
-                if (queue[newItem.pos.getPosX()][newItem.pos.getPosY()] == null) {
-                    queue = addItem(queue, newItem, counter + 1, board);
-                } else if (queue[newItem.pos.getPosX()][newItem.pos.getPosY()].counter > newItem.counter) {
-                    queue = addItem(queue, newItem, counter + 1, board);
+                if (fields[newItem.pos.getPosX()][newItem.pos.getPosY()] == null) {
+                    fields = addItem(fields, newItem, counter + 1, board);
+                } else if (fields[newItem.pos.getPosX()][newItem.pos.getPosY()].counter > newItem.counter) {
+                    fields = addItem(fields, newItem, counter + 1, board);
                 }
             }
         } catch (ArrayIndexOutOfBoundsException e) {}
 
-        return queue;
+        return fields;
     }
 
 
@@ -148,7 +211,7 @@ public class MySnake extends Snake {
 
         Field[] applePos = board.getApples().toArray(new Field[0]);
 
-        QueueItem[][][] queues = new QueueItem[applePos.length][board.getMAX_X()][board.getMAX_Y()];
+        QueueItem[][][] queues = new QueueItem[applePos.length][board.getSIZE_X()][board.getSIZE_Y()];
 
         for (int i = 0; i < applePos.length; i++) {
             queues[i] = new QueueItem[fields.length][fields[0].length];
