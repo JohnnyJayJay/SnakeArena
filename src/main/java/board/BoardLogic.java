@@ -149,7 +149,8 @@ public class BoardLogic {
             Future<String> future = executor.submit(() -> "Ready");
 
             try {
-                direction = this.snakes.get(i).think(new BoardInfo(i, fields.clone(), snakesLocation, apples, barriers));
+                direction = this.snakes.get(i).think(new BoardInfo(i, fields.clone(), new ArrayList<>(snakesLocation),
+                        new ArrayList<>(apples), new ArrayList<>(barriers)));
                 future.get(BoardLogic.CALC_TIME, TimeUnit.MILLISECONDS);
 
             } catch (TimeoutException e) {
@@ -172,7 +173,8 @@ public class BoardLogic {
             newY = this.snakesLocation.get(i).getLast().getPosY();
 
 
-            // check if snake is allowed to move in this direction --
+            // check if snake is allowed to move in this direction
+            // and if true, set new value of newX or newY; else kill snake --
             if ((direction == Snake.LEFT) && (newX > 0)) {
                 --newX;
 
@@ -192,15 +194,21 @@ public class BoardLogic {
                 i--;
                 continue;
             }
-            // ---------------------------------------------------
+            // --------------------------------------------------------------
 
 
             // check if snake run in another snake/barrier/outside or in an apple --
             boolean ate = false;
             if (!this.fields[newX][newY].isFree()) {
-                killSnake(i);
-                i--;
-                continue;
+
+                // check edge case if a snake runs in its own tail
+                if ((newX != snakesLocation.get(i).getFirst().getPosX())
+                        || (newY != snakesLocation.get(i).getFirst().getPosY())) {
+                    killSnake(i);
+                    i--;
+                    continue;
+                }
+
 
             } else if (this.fields[newX][newY].getState() == FieldState.Apple) {
                 removeApple(newX, newY);
@@ -214,7 +222,6 @@ public class BoardLogic {
             int oldY = this.snakesLocation.get(i).getFirst().getPosY();
 
             this.fields[newX][newY].setState(FieldState.Snake);
-            this.fields[oldX][oldY].setState(FieldState.Empty);
 
 
             // move snake
@@ -224,6 +231,7 @@ public class BoardLogic {
             // dont remove last part of body, if snake ate an apple
             if (!ate) {
                 this.snakesLocation.get(i).removeFirst();
+                this.fields[oldX][oldY].setState(FieldState.Empty);
             }
         }
     }
