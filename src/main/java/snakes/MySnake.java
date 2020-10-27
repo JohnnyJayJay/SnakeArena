@@ -7,23 +7,21 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 
 /**
  * This is the snake which has to be filled with lovely intelligence code
  * to become the longest snake of all other snakes.
- *
+ * <p>
  * This snake appears 'MySnake' times an board.
  * The value behind 'MySnake' can set in the property file (snake_arena.properties).
  */
 public class MySnake extends Snake {
 
-    private int direction = RIGHT;
-
-
     public MySnake() {
-        this.NAME = "YOUR_KUHL_SNAKE_NAME";         // set your favorite name
+        this.NAME = "Python";         // set your favorite name
         this.COLOR = new Color(150, 100, 255); // set your favorite color
     }
 
@@ -36,20 +34,17 @@ public class MySnake extends Snake {
     @Override
     public int think(BoardInfo board) {
         long start = System.currentTimeMillis();
+        int direction = chooseDirection(board);
 
-        try {
-            // TODO
-        } catch (Exception e) {
-            direction = survive(board);
-        }
-
-        System.out.printf("time taken to think: %d\n", System.currentTimeMillis() - start);
+        //System.out.printf("time taken to think: %d\n", System.currentTimeMillis() - start);
 
         return direction; // or LEFT, or DOWN, or UP
     }
 
 
     private int survive(BoardInfo board) {
+        //System.out.println("SURVIVE");
+        int direction = UP;
         if (!board.isNextStepFree(direction)) {
             while (!board.isNextStepFree(direction)) {
                 direction = (direction + 1) % 4;
@@ -63,11 +58,11 @@ public class MySnake extends Snake {
      * class to store the values of each field
      */
     static class QueueItem {
-        public Field pos;
-        public int counter;
+        Field pos;
+        int counter;
         boolean initialized;
 
-        public QueueItem(Field pos) {
+        QueueItem(Field pos) {
             this.pos = pos;
             counter = -1;
             initialized = false;
@@ -78,9 +73,16 @@ public class MySnake extends Snake {
             this.counter = counter;
         }
     }
-    // TODO edge cases: can't reach any apple,
 
-
+    // FIXME apparently always survive
+    private int chooseDirection(BoardInfo board) {
+        return board.getApples().stream()
+                .map((apple) -> findPath(board, apple))
+                .filter(Objects::nonNull)
+                .min(Comparator.comparingInt(List::size))
+                .map((path) -> getDirection(board, board.getOwnHead(), path.get(0).pos))
+                .orElse(survive(board));
+    }
 
     private List<QueueItem> findPath(BoardInfo board, Field destination) {
         QueueItem[][] fields = assessField(board, destination);
@@ -92,7 +94,10 @@ public class MySnake extends Snake {
             current = getAdjacentFields(board, fields, current).stream()
                     .filter((field) -> field.initialized)
                     .min(Comparator.comparingInt((field) -> field.counter))
-                    .orElseThrow(); // TODO handle if field wasn't assessed (no path?)
+                    .orElse(null);
+            if (current == null) {
+                return null;
+            }
             path.add(current);
         }
         return path;
@@ -108,9 +113,6 @@ public class MySnake extends Snake {
             QueueItem field = path.get(i);
             initAdjacentFields(board, fields, field);
             List<QueueItem> adjacentFields = getAdjacentFields(board, fields, field);
-            for (QueueItem adjacent : adjacentFields) {
-                adjacent.counter = field.counter + 1;
-            }
             adjacentFields.removeIf((item) -> item.pos.isFree() || item.counter >= field.counter);
             path.addAll(adjacentFields);
         }
@@ -128,7 +130,7 @@ public class MySnake extends Snake {
     }
 
     private boolean isInBounds(BoardInfo board, int x, int y) {
-        return x <= board.getSIZE_X() && y <= board.getSIZE_Y();
+        return x >= 0 && x < board.getSIZE_X() && y >= 0 && y < board.getSIZE_Y();
     }
 
     private List<QueueItem> getAdjacentFields(BoardInfo board, QueueItem[][] fields, QueueItem center) {
@@ -155,6 +157,22 @@ public class MySnake extends Snake {
                     action.accept(fields[center.pos.getPosX()][center.pos.getPosY() + deltaY]);
                 }
             }
+        }
+    }
+
+
+    private int getDirection(BoardInfo board, Field start, Field destination) {
+        if (start.getPosX() + 1 == destination.getPosX()) {
+            return RIGHT;
+        } else if (start.getPosX() - 1 == destination.getPosX()) {
+            return LEFT;
+        } else if (start.getPosY() - 1 == destination.getPosY()) {
+            return UP;
+        } else if (start.getPosY() + 1 == destination.getPosX()) {
+            return DOWN;
+        } else {
+            System.out.print("\n***************************\nFields are not next to each other\n***************************\n");
+            return survive(board);
         }
     }
 }
