@@ -4,10 +4,8 @@ import board.BoardInfo;
 import board.Field;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 
@@ -68,9 +66,14 @@ public class MySnake extends Snake {
             initialized = false;
         }
 
-        void initialize(int counter) {
+        void setCounter(int counter) {
             initialized = true;
             this.counter = counter;
+        }
+
+        @Override
+        public String toString() {
+            return "(" + pos.getPosX() + "," + pos.getPosY() + "," + counter + ")";
         }
     }
 
@@ -107,13 +110,13 @@ public class MySnake extends Snake {
         QueueItem[][] fields = createMatrix(board);
         List<QueueItem> path = new ArrayList<>();
         QueueItem first = fields[destination.getPosX()][destination.getPosY()];
-        first.initialize(0);
+        first.setCounter(0);
         path.add(first);
         for (int i = 0; i < path.size(); i++) {
             QueueItem field = path.get(i);
             initAdjacentFields(board, fields, field);
             List<QueueItem> adjacentFields = getAdjacentFields(board, fields, field);
-            adjacentFields.removeIf((item) -> item.pos.isFree() || item.counter >= field.counter);
+            adjacentFields.removeIf((item) -> item.pos.isFree() || path.contains(item));
             path.addAll(adjacentFields);
         }
         return fields;
@@ -140,7 +143,11 @@ public class MySnake extends Snake {
     }
 
     private void initAdjacentFields(BoardInfo info, QueueItem[][] fields, QueueItem center) {
-        forAdjacentFields(info, fields, center, (field) -> field.initialize(center.counter + 1));
+        forAdjacentFields(info, fields, center, (field) -> {
+            if (!field.initialized || center.counter + 1 < field.counter) {
+                field.setCounter(center.counter + 1);
+            }
+        });
     }
 
     private void forAdjacentFields(BoardInfo board, QueueItem[][] fields, QueueItem center, Consumer<QueueItem> action) {
