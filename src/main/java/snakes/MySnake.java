@@ -34,22 +34,30 @@ public class MySnake extends Snake {
         long start = System.currentTimeMillis();
         int direction = chooseDirection(board);
 
-//        System.out.printf("time taken to think: %d\n", System.currentTimeMillis() - start);
+        if (!board.isNextStepFree(direction)) {
+            System.out.println(direction);
+            direction = survive(board);
+        }
+
+        System.out.printf("time taken to think: %d\n", System.currentTimeMillis() - start);
 
         return direction; // or LEFT, or DOWN, or UP
     }
 
-
+//FIXME enters survive far too often
     /**
      * @param board
      * @return direction to not drive into barrier
      */
     private int survive(BoardInfo board) {
-        //System.out.println("SURVIVE");
+        System.out.println("SURVIVE");
         int direction = UP;
         if (!board.isNextStepFree(direction)) {
             while (!board.isNextStepFree(direction)) {
-                direction = (direction + 1) % 4;
+                direction = direction + 1;
+                if (direction == 4) {
+                    return UP;
+                }
             }
         }
         return direction;
@@ -81,7 +89,6 @@ public class MySnake extends Snake {
         }
     }
 
-    // FIXME apparently always survive
     /**
      * @param board
      * @return direction to the nearest apple
@@ -116,11 +123,12 @@ public class MySnake extends Snake {
             }
             path.add(current);
         }
-        System.out.print("path: ");
-        System.out.println(path);
+//        System.out.print("path: ");
+//        System.out.println(path);
         return path;
     }
 
+    //FIXME not all barriers get registered
     /**
      * @param board
      * @param destination Field to find path to
@@ -226,16 +234,17 @@ public class MySnake extends Snake {
      * @return direction from start to destination
      */
     private int getDirection(BoardInfo board, Field start, Field destination) {
+//        System.out.printf("start: %d,%d, destination: %d,%d\n", start.getPosX(), start.getPosY(), destination.getPosX(), destination.getPosY());
         if (start.getPosX() + 1 == destination.getPosX()) {
             return RIGHT;
         } else if (start.getPosX() - 1 == destination.getPosX()) {
             return LEFT;
         } else if (start.getPosY() - 1 == destination.getPosY()) {
             return UP;
-        } else if (start.getPosY() + 1 == destination.getPosX()) {
+        } else if (start.getPosY() + 1 == destination.getPosY()) {
             return DOWN;
         } else {
-            System.out.print("\n***************************\nFields are not next to each other\n***************************\n");
+//            System.out.print("\n***************************\nFields are not next to each other\n***************************\n");
             return survive(board);
         }
     }
