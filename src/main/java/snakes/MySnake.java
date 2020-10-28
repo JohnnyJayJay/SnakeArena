@@ -7,6 +7,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 
 /**
@@ -44,7 +45,10 @@ public class MySnake extends Snake {
         return direction; // or LEFT, or DOWN, or UP
     }
 
-//FIXME enters survive far too often
+//TODO trap other snakes
+//TODO avoid traps
+//TODO go to other apple if other snake is closer
+
     /**
      * @param board
      * @return direction to not drive into barrier
@@ -99,7 +103,7 @@ public class MySnake extends Snake {
                 .filter(Objects::nonNull)
                 .min(Comparator.comparingInt(List::size))
                 .map((path) -> getDirection(board, board.getOwnHead(), path.get(0).pos))
-                .orElse(survive(board));
+                .orElse(survive(board)); //FIXME seems to enters survive every time
     }
 
     /**
@@ -203,8 +207,10 @@ public class MySnake extends Snake {
 
     private void initAdjacentFields(BoardInfo info, QueueItem[][] fields, QueueItem center) {
         forAdjacentFields(info, fields, center, (field) -> {
-            if (!field.initialized || center.counter + 1 < field.counter) {
-                field.setCounter(center.counter + 1);
+            if (field.pos.isFree()) {
+                if (!field.initialized || center.counter + 1 < field.counter) {
+                    field.setCounter(center.counter + 1);
+                }
             }
         });
     }
