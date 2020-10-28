@@ -34,12 +34,16 @@ public class MySnake extends Snake {
         long start = System.currentTimeMillis();
         int direction = chooseDirection(board);
 
-        //System.out.printf("time taken to think: %d\n", System.currentTimeMillis() - start);
+//        System.out.printf("time taken to think: %d\n", System.currentTimeMillis() - start);
 
         return direction; // or LEFT, or DOWN, or UP
     }
 
 
+    /**
+     * @param board
+     * @return direction to not drive into barrier
+     */
     private int survive(BoardInfo board) {
         //System.out.println("SURVIVE");
         int direction = UP;
@@ -52,7 +56,7 @@ public class MySnake extends Snake {
     }
 
 
-    /*
+    /**
      * class to store the values of each field
      */
     static class QueueItem {
@@ -78,6 +82,10 @@ public class MySnake extends Snake {
     }
 
     // FIXME apparently always survive
+    /**
+     * @param board
+     * @return direction to the nearest apple
+     */
     private int chooseDirection(BoardInfo board) {
         return board.getApples().stream()
                 .map((apple) -> findPath(board, apple))
@@ -87,6 +95,11 @@ public class MySnake extends Snake {
                 .orElse(survive(board));
     }
 
+    /**
+     * @param board
+     * @param destination field to find path to
+     * @return path to destination
+     */
     private List<QueueItem> findPath(BoardInfo board, Field destination) {
         QueueItem[][] fields = assessField(board, destination);
         Field head = board.getOwnHead();
@@ -103,25 +116,49 @@ public class MySnake extends Snake {
             }
             path.add(current);
         }
+        System.out.print("path: ");
+        System.out.println(path);
         return path;
     }
 
+    /**
+     * @param board
+     * @param destination Field to find path to
+     * @return matrix of QueueItems
+     */
     private QueueItem[][] assessField(BoardInfo board, Field destination) {
         QueueItem[][] fields = createMatrix(board);
         List<QueueItem> path = new ArrayList<>();
+
         QueueItem first = fields[destination.getPosX()][destination.getPosY()];
         first.setCounter(0);
         path.add(first);
+
         for (int i = 0; i < path.size(); i++) {
             QueueItem field = path.get(i);
             initAdjacentFields(board, fields, field);
             List<QueueItem> adjacentFields = getAdjacentFields(board, fields, field);
-            adjacentFields.removeIf((item) -> item.pos.isFree() || path.contains(item));
+            adjacentFields.removeIf((item) -> !item.pos.isFree() || path.contains(item));
             path.addAll(adjacentFields);
         }
+
+
+        for (QueueItem[] column : fields) {
+            for (QueueItem item : column) {
+                System.out.printf(item.initialized ? "[ %d ]" : "[ X ]", item.counter);
+            }
+            System.out.println();
+        }
+
+        System.out.println();
         return fields;
     }
 
+    /**
+     *
+     * @param board
+     * @return
+     */
     private QueueItem[][] createMatrix(BoardInfo board) {
         QueueItem[][] fields = new QueueItem[board.getSIZE_X()][board.getSIZE_Y()];
         for (int x = 0; x < board.getSIZE_X(); x++) {
@@ -132,10 +169,24 @@ public class MySnake extends Snake {
         return fields;
     }
 
+    /**
+     *
+     * @param board
+     * @param x x coordinate
+     * @param y y coordinate
+     * @return if Field with x and y coordinates exists on board
+     */
     private boolean isInBounds(BoardInfo board, int x, int y) {
         return x >= 0 && x < board.getSIZE_X() && y >= 0 && y < board.getSIZE_Y();
     }
 
+    /**
+     *
+     * @param board
+     * @param fields matrix of QueueItems
+     * @param center
+     * @return list of adjacent fields as QueueItems
+     */
     private List<QueueItem> getAdjacentFields(BoardInfo board, QueueItem[][] fields, QueueItem center) {
         List<QueueItem> list = new ArrayList<>(4);
         forAdjacentFields(board, fields, center, list::add);
@@ -167,7 +218,13 @@ public class MySnake extends Snake {
         }
     }
 
-
+    /**
+     *
+     * @param board
+     * @param start
+     * @param destination
+     * @return direction from start to destination
+     */
     private int getDirection(BoardInfo board, Field start, Field destination) {
         if (start.getPosX() + 1 == destination.getPosX()) {
             return RIGHT;
