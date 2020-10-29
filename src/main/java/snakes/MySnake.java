@@ -45,10 +45,6 @@ public class MySnake extends Snake {
         return direction; // or LEFT, or DOWN, or UP
     }
 
-//TODO trap other snakes
-//TODO avoid traps
-//TODO go to other apple if other snake is closer
-
     /**
      * @param board
      * @return direction to not drive into barrier
@@ -101,9 +97,26 @@ public class MySnake extends Snake {
         return board.getApples().stream()
                 .map((apple) -> findPath(board, apple))
                 .filter(Objects::nonNull)
-                .min(Comparator.comparingInt(List::size))
-                .map((path) -> getDirection(board, board.getOwnHead(), path.get(0).pos))
+                .min(
+                        Comparator.comparingInt(
+                                (Path path) -> board.getOtherHeads().stream()
+                                        .map((head) -> getAdjacentFields(board, path.fields, path.fields[head.getPosX()][head.getPosY()]))
+                                        .mapToInt((adjacents) -> adjacents.stream().mapToInt((item) -> item.counter).min().orElse(Integer.MAX_VALUE))
+                                        .min()
+                                        .orElse(Integer.MAX_VALUE)
+                        ).reversed().thenComparingInt((path) -> path.path.size())
+                ).map((path) -> getDirection(board, board.getOwnHead(), path.path.get(0).pos))
                 .orElseGet(() -> survive(board));
+    }
+
+    private static class Path {
+        List<QueueItem> path;
+        QueueItem[][] fields;
+
+        Path(List<QueueItem> path, QueueItem[][] fields) {
+            this.path = path;
+            this.fields = fields;
+        }
     }
 
     /**
@@ -111,7 +124,7 @@ public class MySnake extends Snake {
      * @param destination field to find path to
      * @return path to destination
      */
-    private List<QueueItem> findPath(BoardInfo board, Field destination) {
+    private Path findPath(BoardInfo board, Field destination) {
         QueueItem[][] fields = assessField(board, destination);
         Field head = board.getOwnHead();
         QueueItem start = fields[head.getPosX()][head.getPosY()];
@@ -120,7 +133,8 @@ public class MySnake extends Snake {
         while (current.counter != 0) {
             current = getAdjacentFields(board, fields, current).stream()
                     .filter((field) -> field.initialized)
-                    .min(Comparator.comparingInt((field) -> field.counter))
+                    .min(Comparator.comparingInt((QueueItem field) -> field.counter)
+                            .thenComparing((field) -> isTrap(board, field.pos)))
                     .orElse(null);
             if (current == null) {
                 return null;
@@ -129,10 +143,24 @@ public class MySnake extends Snake {
         }
 //        System.out.print("path: ");
 //        System.out.println(path);
-        return path;
+        return new Path(path, fields);
     }
 
-    //FIXME not all barriers get registered
+    private boolean isBlocked(BoardInfo board, int x, int y) {
+        return !isInBounds(board, x, y) || !board.getFields()[x][y].isFree();
+    }
+
+    private boolean isTrap(BoardInfo board, Field field) {
+        int x = field.getPosX();
+        int y = field.getPosY();
+        int direction = getDirection(board, board.getOwnHead(), field);
+        if (direction % 2 == 0) {
+            return isBlocked(board, x + 1, y) && isBlocked(board, x - 1, y);
+        } else {
+            return isBlocked(board, x, y + 1) && isBlocked(board, x, y - 1);
+        }
+    }
+
     /**
      * @param board
      * @param destination Field to find path to
@@ -167,7 +195,6 @@ public class MySnake extends Snake {
     }
 
     /**
-     *
      * @param board
      * @return
      */
@@ -182,10 +209,9 @@ public class MySnake extends Snake {
     }
 
     /**
-     *
      * @param board
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param x     x coordinate
+     * @param y     y coordinate
      * @return if Field with x and y coordinates exists on board
      */
     private boolean isInBounds(BoardInfo board, int x, int y) {
@@ -193,7 +219,6 @@ public class MySnake extends Snake {
     }
 
     /**
-     *
      * @param board
      * @param fields matrix of QueueItems
      * @param center
@@ -233,7 +258,6 @@ public class MySnake extends Snake {
     }
 
     /**
-     *
      * @param board
      * @param start
      * @param destination
