@@ -21,7 +21,7 @@ public class MySnake extends Snake {
 
     public MySnake() {
         this.NAME = "Python";         // set your favorite name
-        this.COLOR = new Color(150, 100, 255); // set your favorite color
+        this.COLOR = new Color(0xFFDC4B); // set your favorite color
     }
 
     /**
