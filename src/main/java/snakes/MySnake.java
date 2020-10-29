@@ -32,17 +32,17 @@ public class MySnake extends Snake {
      */
     @Override
     public int think(BoardInfo board) {
-        long start = System.currentTimeMillis();
+        //long start = System.currentTimeMillis();
         int direction = chooseDirection(board);
 
         if (!board.isNextStepFree(direction)) {
-            System.out.println(direction);
+            //System.out.println(direction);
             direction = survive(board);
         }
 
-        System.out.printf("time taken to think: %d\n", System.currentTimeMillis() - start);
+        //System.out.printf("time taken to think: %d\n", System.currentTimeMillis() - start);
 
-        return direction; // or LEFT, or DOWN, or UP
+        return direction;
     }
 
     /**
@@ -50,7 +50,7 @@ public class MySnake extends Snake {
      * @return direction to not drive into barrier
      */
     private int survive(BoardInfo board) {
-        System.out.println("SURVIVE");
+        //System.out.println("SURVIVE");
         int direction = UP;
         if (!board.isNextStepFree(direction)) {
             while (!board.isNextStepFree(direction)) {
@@ -183,12 +183,12 @@ public class MySnake extends Snake {
         }
 
 
-        for (QueueItem[] column : fields) {
+        /*for (QueueItem[] column : fields) {
             for (QueueItem item : column) {
                 System.out.printf(item.initialized ? "[ %d ]" : "[ X ]", item.counter);
             }
             System.out.println();
-        }
+        }*/
 
         System.out.println();
         return fields;
