@@ -103,7 +103,7 @@ public class MySnake extends Snake {
                 .filter(Objects::nonNull)
                 .min(Comparator.comparingInt(List::size))
                 .map((path) -> getDirection(board, board.getOwnHead(), path.get(0).pos))
-                .orElse(survive(board)); //FIXME seems to enters survive every time
+                .orElseGet(() -> survive(board));
     }
 
     /**
